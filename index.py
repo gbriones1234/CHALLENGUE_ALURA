@@ -1,46 +1,51 @@
 import psycopg2
 import ollama
-import csv
-from PyPDF2 import PdfReader
+import os
+from dotenv import load_dotenv
+import PyPDF2
 
-# Conexión a Postgres con pgvector
-conn = psycopg2.connect("dbname=vector_db user=postgres password=postgres host=localhost")
+# Cargar variables del archivo .env
+load_dotenv()
+
+# Conexión a Postgres con pgvector usando variables de entorno
+conn = psycopg2.connect(
+    dbname=os.getenv("DB_NAME"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+    host=os.getenv("DB_HOST", "localhost"),
+    port=os.getenv("DB_PORT", "5432")
+)
 cur = conn.cursor()
 
+# Crear extensión y tabla si no existen
+cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 cur.execute("""
-CREATE TABLE IF NOT EXISTS documents (
-    id SERIAL PRIMARY KEY,
-    content TEXT,
-    embedding VECTOR(1024)
-);
+    CREATE TABLE IF NOT EXISTS documents (
+        id SERIAL PRIMARY KEY,
+        content TEXT,
+        embedding VECTOR(1024)
+    );
 """)
 conn.commit()
 
 def embed_text(text):
-    response = ollama.embeddings(model="qwen3-embedding", prompt=text)
-    return response["embedding"]
+    emb = ollama.embeddings(model="bge-m3", prompt=text)["embedding"]
+    # Convertir lista a string compatible con pgvector
+    return "[" + ",".join(str(x) for x in emb) + "]"
 
-def load_csv(file_path):
-    with open(file_path, newline='', encoding="utf-8") as f:
-        reader = csv.reader(f)
-        for row in reader:
-            text = " ".join(row)
-            emb = embed_text(text)
-            cur.execute("INSERT INTO documents (content, embedding) VALUES (%s, %s)", (text, emb))
-    conn.commit()
-
-def load_pdf(file_path):
-    reader = PdfReader(file_path)
+def load_pdf(path):
+    reader = PyPDF2.PdfReader(path)
     for page in reader.pages:
         text = page.extract_text()
         if text:
-            emb = embed_text(text)
-            cur.execute("INSERT INTO documents (content, embedding) VALUES (%s, %s)", (text, emb))
+            emb_str = embed_text(text)
+            cur.execute(
+                "INSERT INTO documents (content, embedding) VALUES (%s, %s::vector)",
+                (text, emb_str)
+            )
     conn.commit()
 
 if __name__ == "__main__":
-    # Cambia aquí según el tipo de archivo
-    load_csv("data.csv")
-    # load_pdf("documento.pdf")
-    print("Archivo cargado y vectorizado en Postgres.")
+    load_pdf("documentos/ed99ddc6-bead-47fd-886b-c007c7e36885.pdf")
+    print("PDF cargado en la base de datos con embeddings.")
 
