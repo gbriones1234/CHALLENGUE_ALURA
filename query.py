@@ -2,11 +2,18 @@ import psycopg2
 import ollama
 import os
 from dotenv import load_dotenv
-from langgraph.graph import StateGraph
+from typing import TypedDict, List
+from langgraph.graph import StateGraph, END
 
-# Cargar variables del archivo .env
+# Definir la estructura del estado
+class AgentState(TypedDict):
+    query: str
+    context: List[str]
+    answer: str
+
 load_dotenv()
 
+# Conexión (Asegúrate de tener pgvector habilitado)
 conn = psycopg2.connect(
     dbname=os.getenv("DB_NAME"),
     user=os.getenv("DB_USER"),
@@ -17,54 +24,54 @@ conn = psycopg2.connect(
 cur = conn.cursor()
 
 def embed_text(text):
-    emb = ollama.embeddings(model="bge-m3", prompt=text)["embedding"]
-    return "[" + ",".join(str(x) for x in emb) + "]"
+    return ollama.embeddings(model="bge-m3", prompt=text)["embedding"]
 
 def search_similar(query, top_k=3):
-    emb_str = embed_text(query)
+    emb = embed_text(query)
+    # Usamos distancia coseno (coseno <=> ) que suele ser mejor para semántica
     cur.execute(
-        "SELECT content FROM documents ORDER BY embedding <-> %s::vector LIMIT %s",
-        (emb_str, top_k)
+        "SELECT content FROM documents ORDER BY embedding <=> %s::vector LIMIT %s",
+        (emb, top_k)
     )
     return [row[0] for row in cur.fetchall()]
 
-def chat_with_context(query):
-    context = search_similar(query)
-    prompt = f"Contexto:\n{context}\n\nPregunta:\n{query}"
-    response = ollama.chat(model="phi3", messages=[{"role": "user", "content": prompt}])
-    return response["message"]["content"]
+# Nodos del Grafo
+def retrieval_node(state: AgentState):
+    context = search_similar(state["query"])
+    return {"context": context}
 
-# Definir grafo de estados
-graph = StateGraph(dict)
-
-def input_node(state):
-    return {"query": state["query"]}
-
-def retrieval_node(state):
-    results = search_similar(state["query"])
-    return {"query": state["query"], "context": results}
-
-def chat_node(state):
-    prompt = f"Contexto:\n{state['context']}\n\nPregunta:\n{state['query']}"
-    response = ollama.chat(model="gemma:2b", messages=[{"role": "user", "content": prompt}])
+def chat_node(state: AgentState):
+    context_text = "\n".join(state["context"])
+    
+    # Sistema mejorado para dar más contexto y evitar alucinaciones
+    system_prompt = (
+        "Eres un asistente experto. Usa el contexto proporcionado para responder a la pregunta del usuario. "
+        "Si la respuesta no se encuentra en el contexto, di claramente que no tienes esa información."
+    )
+    
+    prompt = f"Contexto:\n{context_text}\n\nPregunta del usuario:\n{state['query']}"
+    
+    response = ollama.chat(model="llama3.1", messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": prompt}
+    ])
+    
     return {"answer": response["message"]["content"]}
 
-graph.add_node("input_node", input_node)
-graph.add_node("retrieval_node", retrieval_node)
-graph.add_node("chat_node", chat_node)
+# Construcción del grafo
+workflow = StateGraph(AgentState)
 
-graph.add_edge("input_node", "retrieval_node")
-graph.add_edge("retrieval_node", "chat_node")
+workflow.add_node("retrieval", retrieval_node)
+workflow.add_node("generator", chat_node)
 
-graph.set_entry_point("input_node")
-graph.set_finish_point("chat_node")
+workflow.set_entry_point("retrieval")
+workflow.add_edge("retrieval", "generator")
+workflow.add_edge("generator", END)
 
-app = graph.compile()
+app = workflow.compile()
 
 if __name__ == "__main__":
-    
-    #query = "¿Cuál es el mensaje del director general?"
-    query = "Cuál es el oranigrama general de la tienda?"
-    result = app.invoke({"query": query})
-    print("Respuesta:", result["answer"])
+    query_input = "Cuál es el organigrama general de la tienda dame los cargos dame los cargos  ?"
+    result = app.invoke({"query": query_input})
+    print("\nRespuesta del Asistente:\n", result["answer"])
 
