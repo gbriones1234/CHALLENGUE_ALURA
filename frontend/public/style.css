@@ -1,0 +1,7 @@
+#dropzone {
+  cursor: pointer;
+}
+#dropzone.dragover {
+  background-color: #e9f5ff;
+}
+
