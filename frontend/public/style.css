@@ -4,4 +4,32 @@
 #dropzone.dragover {
   background-color: #e9f5ff;
 }
+#chatWindow {
+  background-color: #f8f9fa;
+}
+
+.message {
+  margin-bottom: 1rem;
+}
+
+.user-msg {
+  text-align: right;
+}
+
+.user-msg .bubble {
+  display: inline-block;
+  background-color: #0d6efd;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 15px;
+  max-width: 70%;
+}
+
+.bot-msg .bubble {
+  display: inline-block;
+  background-color: #e9ecef;
+  padding: 10px 15px;
+  border-radius: 15px;
+  max-width: 70%;
+}
 

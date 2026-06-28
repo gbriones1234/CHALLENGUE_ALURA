@@ -1,3 +1,42 @@
+const chatWindow = document.getElementById("chatWindow");
+const userInput = document.getElementById("userInput");
+const sendBtn = document.getElementById("sendBtn");
+const docList = document.getElementById("docList");
+
+// Enviar mensaje al backend de chat
+sendBtn.addEventListener("click", sendMessage);
+userInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
+
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text) return;
+
+  appendMessage("user", text);
+  userInput.value = "";
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: text })
+    });
+
+    const data = await response.json();
+
+    // Actualizar documentos cargados
+    renderDocuments(data.documents);
+
+    // Mostrar respuesta del bot en Markdown
+    appendMessage("bot", marked.parse(data.answer));
+  } catch (err) {
+    appendMessage("bot", "<span class='text-danger'>Error al conectar con el backend</span>");
+    console.error(err);
+  }
+}
+
+// Subida de documentos
 const dropzone = document.getElementById("dropzone");
 const progressBar = document.getElementById("progress");
 
@@ -30,9 +69,8 @@ function uploadFile(file) {
   progressBar.innerText = "0%";
 
   const xhr = new XMLHttpRequest();
-  xhr.open("POST", "/upload", true);
+  xhr.open("POST", "/api/embed/upload", true);
 
-  // Feedback inicial: subida del archivo
   xhr.upload.onprogress = (e) => {
     if (e.lengthComputable) {
       const percent = Math.round((e.loaded / e.total) * 100);
@@ -41,13 +79,11 @@ function uploadFile(file) {
     }
   };
 
-  // Cuando termina la subida, el backend empieza embeddings
   xhr.onloadstart = () => {
     progressBar.classList.add("progress-bar-animated");
   };
 
   xhr.onload = () => {
-    // El backend responde solo cuando embeddings terminan
     progressBar.classList.remove("progress-bar-animated");
     progressBar.style.width = "100%";
     progressBar.innerText = "Completado";
@@ -63,19 +99,40 @@ function uploadFile(file) {
   xhr.send(formData);
 }
 
+// Listar documentos cargados
 async function loadDocuments() {
   try {
-    const response = await fetch("/documents");
+    const response = await fetch("/api/embed/documents");
     const docs = await response.json();
-    const container = document.getElementById("documents");
-    container.innerHTML = "<h2>Documentos cargados</h2><ul class='list-group'>" +
-      docs.map(d => `<li class='list-group-item'>${d.doc_name}</li>`).join("") +
-      "</ul>";
+    renderDocuments(docs);
   } catch (err) {
     console.error("Error al listar documentos:", err);
   }
 }
 
-// cargar al inicio
+function appendMessage(sender, text) {
+  const msgDiv = document.createElement("div");
+  msgDiv.classList.add("message", sender === "user" ? "user-msg" : "bot-msg");
+
+  const bubble = document.createElement("div");
+  bubble.classList.add("bubble");
+  bubble.innerHTML = text;
+
+  msgDiv.appendChild(bubble);
+  chatWindow.appendChild(msgDiv);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function renderDocuments(docs) {
+  docList.innerHTML = "";
+  docs.forEach(doc => {
+    const badge = document.createElement("span");
+    badge.classList.add("badge", "bg-secondary", "me-1", "mb-1");
+    badge.innerText = doc;
+    docList.appendChild(badge);
+  });
+}
+
+// Cargar documentos al inicio
 loadDocuments();
 
