@@ -9,7 +9,7 @@ const PORT = 3000;
 // Configuración de Multer: guarda con nombre original y extensión
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/");
+    cb(null, path.join(__dirname, "uploads")); // asegura ruta correcta
   },
   filename: function (req, file, cb) {
     cb(null, file.originalname); // conserva nombre y extensión
@@ -24,7 +24,8 @@ app.use(express.static(path.join(__dirname, "public")));
 // Endpoint para subir archivos
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
-    const filePath = path.resolve(req.file.path);
+    // Ruta absoluta del archivo subido
+    const filePath = path.resolve(__dirname, "uploads", req.file.originalname);
 
     // Enviar al backend Flask
     const response = await axios.post("http://127.0.0.1:5000/upload", {
