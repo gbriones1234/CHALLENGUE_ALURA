@@ -1,0 +1,15 @@
+[Unit]
+Description=Node Frontend
+After=network.target
+
+[Service]
+Type=simple
+User=agente
+WorkingDirectory=/opt/agente/frontend
+ExecStart=/usr/bin/node server.js
+Restart=always
+Environment="PATH=/usr/bin:/usr/local/bin"
+
+[Install]
+WantedBy=multi-user.target
+
