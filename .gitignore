@@ -4,3 +4,5 @@ venv/
 # Ignorar archivo de variables de entorno
 .env
 .bash_history
+.gitconfig
+.viminfo

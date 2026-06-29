@@ -11,10 +11,10 @@
 # hlsearch on (H) or off (h):
 ~H
 # Command Line History (newest to oldest):
+:wq
+|2,0,1782746504,,"wq"
 :q
 |2,0,1782746284,,"q"
-:wq
-|2,0,1782746272,,"wq"
 
 # Search String History (newest to oldest):
 
@@ -27,12 +27,40 @@
 # Registers:
 
 # File marks:
-'0  1  0  ~/.git/COMMIT_EDITMSG
-|4,48,1,0,1782746284,"~/.git/COMMIT_EDITMSG"
-'1  6  12  ~/.gitignore
-|4,49,6,12,1782746272,"~/.gitignore"
+'0  8  7  ~/.gitignore
+|4,48,8,7,1782746504,"~/.gitignore"
+'1  7  9  ~/.gitignore
+|4,49,7,9,1782746373,"~/.gitignore"
+'2  7  9  ~/.gitignore
+|4,50,7,9,1782746373,"~/.gitignore"
+'3  1  0  ~/.git/COMMIT_EDITMSG
+|4,51,1,0,1782746284,"~/.git/COMMIT_EDITMSG"
+'4  6  12  ~/.gitignore
+|4,52,6,12,1782746272,"~/.gitignore"
+'5  6  12  ~/.gitignore
+|4,53,6,12,1782746272,"~/.gitignore"
+'6  6  12  ~/.gitignore
+|4,54,6,12,1782746272,"~/.gitignore"
+'7  6  12  ~/.gitignore
+|4,55,6,12,1782746272,"~/.gitignore"
 
 # Jumplist (newest first):
+-'  8  7  ~/.gitignore
+|4,39,8,7,1782746504,"~/.gitignore"
+-'  7  9  ~/.gitignore
+|4,39,7,9,1782746496,"~/.gitignore"
+-'  7  9  ~/.gitignore
+|4,39,7,9,1782746373,"~/.gitignore"
+-'  6  12  ~/.gitignore
+|4,39,6,12,1782746366,"~/.gitignore"
+-'  6  12  ~/.gitignore
+|4,39,6,12,1782746366,"~/.gitignore"
+-'  1  0  ~/.git/COMMIT_EDITMSG
+|4,39,1,0,1782746284,"~/.git/COMMIT_EDITMSG"
+-'  1  0  ~/.git/COMMIT_EDITMSG
+|4,39,1,0,1782746284,"~/.git/COMMIT_EDITMSG"
+-'  1  0  ~/.git/COMMIT_EDITMSG
+|4,39,1,0,1782746284,"~/.git/COMMIT_EDITMSG"
 -'  1  0  ~/.git/COMMIT_EDITMSG
 |4,39,1,0,1782746284,"~/.git/COMMIT_EDITMSG"
 -'  6  12  ~/.gitignore
@@ -43,16 +71,22 @@
 |4,39,1,0,1782746258,"~/.gitignore"
 -'  1  0  ~/.gitignore
 |4,39,1,0,1782746258,"~/.gitignore"
+-'  1  0  ~/.gitignore
+|4,39,1,0,1782746258,"~/.gitignore"
+-'  1  0  ~/.gitignore
+|4,39,1,0,1782746258,"~/.gitignore"
 
 # History of marks within files (newest to oldest):
+
+> ~/.gitignore
+	*	1782746502	0
+	"	8	7
+	^	8	8
+	.	8	7
+	+	6	12
+	+	7	9
+	+	8	7
 
 > ~/.git/COMMIT_EDITMSG
 	*	1782746281	0
 	"	1	0
-
-> ~/.gitignore
-	*	1782746271	0
-	"	6	12
-	^	6	13
-	.	6	12
-	+	6	12
