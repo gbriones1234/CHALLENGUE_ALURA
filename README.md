@@ -33,8 +33,7 @@ Node.js (Express + Multer)
                 ▼
         Ollama (bge-m3 + llama3.1)
 
-
-
+```
 Este proyecto implementa un **backend de chat inteligente** que combina recuperación de información desde documentos almacenados en **PostgreSQL** con generación de respuestas mediante **modelos de lenguaje (LLMs)**.  
 La arquitectura está desplegada en **Oracle Cloud Infrastructure (OCI)** sobre **Oracle Linux 9 ARM64**, optimizada para entornos empresariales y de alta disponibilidad.
 
@@ -88,5 +87,6 @@ DB_PORT=5432
 
 # Ejecutar servidor Flask
 python chat_backend.py
+
 
 
