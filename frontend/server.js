@@ -28,7 +28,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const filePath = path.resolve(__dirname, "uploads", req.file.originalname);
 
     // Enviar al backend Flask
-    const response = await axios.post("http://127.0.0.1:5000/upload", {
+    const response = await axios.post("http://127.0.0.1:5000/api/embed/upload", {
       path: filePath
     });
 
@@ -42,7 +42,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 // Endpoint para listar documentos desde backend
 app.get("/documents", async (req, res) => {
   try {
-    const response = await axios.get("http://127.0.0.1:5000/documents");
+    const response = await axios.get("http://127.0.0.1:5000/api/embed/documents");
     res.json(response.data);
   } catch (err) {
     console.error("Error al listar documentos:", err.message);

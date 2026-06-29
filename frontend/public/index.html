@@ -1,55 +1,137 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Agente Documentos</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Dark mode -->
-  <style>
-    body { background-color: #121212; color: #e0e0e0; }
-    .chat-container { max-width: 800px; margin: 20px auto; }
-    #chatWindow { height: 400px; overflow-y: auto; border: 1px solid #444; padding: 10px; background: #1e1e1e; }
-    .message { margin: 5px 0; }
-    .user-msg .bubble { background: #0d6efd; color: #fff; padding: 8px 12px; border-radius: 15px; display: inline-block; }
-    .bot-msg .bubble { background: #333; color: #e0e0e0; padding: 8px 12px; border-radius: 15px; display: inline-block; }
-    #dropzone { border: 2px dashed #666; padding: 20px; text-align: center; margin-bottom: 10px; cursor: pointer; }
-    #dropzone.dragover { background-color: #222; }
-    .progress { height: 25px; margin-bottom: 10px; }
-    .progress-bar { width: 0%; }
-  </style>
-</head>
-<body>
-  <div class="container chat-container">
-    <h1 class="text-center mb-4">Agente Documentos</h1>
+<meta charset="UTF-8">
+<title>Mercado Central 24H • Asistente Inteligente</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- Documentos cargados -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+    background: #0f1115;
+    color: #e6e6e6;
+}
+
+.container-fluid {
+    height: 100vh;
+}
+
+.sidebar {
+    background: #151922;
+    height: 100vh;
+    border-right: 1px solid #2a2f3a;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.chat-panel {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-box {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.msg {
+    margin-bottom: 10px;
+}
+
+.user {
+    text-align: right;
+}
+
+.user .bubble {
+    background: #0d6efd;
+    color: white;
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 12px;
+}
+
+.bot .bubble {
+    background: #2a2f3a;
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 12px;
+}
+
+.input-box {
+    padding: 10px;
+    border-top: 1px solid #2a2f3a;
+    display: flex;
+    gap: 10px;
+}
+
+.upload-box {
+    border: 1px dashed #444;
+    padding: 15px;
+    margin-bottom: 15px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.badge-doc {
+    margin: 3px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container-fluid">
+<div class="row">
+
+<!-- SIDEBAR DOCUMENTOS -->
+<div class="col-md-3 sidebar">
+
+     
+<h4>🏪 Mercado Central 24H</h4>
+<small class="text-muted">
+Asistente inteligente de documentos
+</small>
+<hr>
     <div id="docList" class="mb-3"></div>
 
-    <!-- Dropzone y subida -->
-    <div id="dropzone">Arrastra tu archivo aquí o usa el botón</div>
-    <div class="progress">
-      <div id="progress" class="progress-bar bg-success"></div>
-    </div>
-    <div class="mb-3">
-      <input type="file" id="fileInput" class="form-control mb-2">
-      <button id="uploadBtn" class="btn btn-primary">Subir</button>
+    <div class="upload-box" id="dropzone">
+        Arrastra PDF o haz click
     </div>
 
-    <!-- Chat -->
-    <div id="chatWindow" class="mb-3"></div>
-    <div class="input-group">
-      <input id="userInput" type="text" class="form-control" placeholder="Escribe tu mensaje...">
-      <button id="sendBtn" class="btn btn-success">Enviar</button>
-    </div>
-  </div>
+    <input type="file" id="fileInput" class="form-control mb-2">
 
-  <!-- Bootstrap JS + Marked (Markdown parser) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- Tu lógica de frontend -->
-  <script src="app.js"></script>
+    <button id="uploadBtn" class="btn btn-primary w-100">
+        Subir documento
+    </button>
+
+    <div class="progress mt-3">
+        <div id="progress" class="progress-bar"></div>
+    </div>
+
+</div>
+
+<!-- CHAT -->
+<div class="col-md-9 chat-panel">
+
+    <div class="chat-box" id="chatBox"></div>
+
+    <div class="input-box">
+        <input id="userInput" class="form-control" placeholder="Escribe tu pregunta...">
+        <button id="sendBtn" class="btn btn-success">Enviar</button>
+    </div>
+
+</div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="app.js"></script>
+
 </body>
 </html>
-

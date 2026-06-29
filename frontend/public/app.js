@@ -1,138 +1,133 @@
-const chatWindow = document.getElementById("chatWindow");
+const chatBox = document.getElementById("chatBox");
 const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
-const docList = document.getElementById("docList");
 
-// Enviar mensaje al backend de chat
-sendBtn.addEventListener("click", sendMessage);
-userInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") sendMessage();
-});
+const docList = document.getElementById("docList");
+const fileInput = document.getElementById("fileInput");
+const uploadBtn = document.getElementById("uploadBtn");
+const progress = document.getElementById("progress");
+
+// ---------------- CHAT ----------------
+
+sendBtn.onclick = sendMessage;
 
 async function sendMessage() {
-  const text = userInput.value.trim();
-  if (!text) return;
 
-  appendMessage("user", text);
-  userInput.value = "";
+    const text = userInput.value.trim();
+    if (!text) return;
 
-  try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: text })
-    });
+    addMsg("user", text);
+    userInput.value = "";
 
-    const data = await response.json();
+    try {
 
-    // Actualizar documentos cargados
-    renderDocuments(data.documents);
+        const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({query: text})
+        });
 
-    // Mostrar respuesta del bot en Markdown
-    appendMessage("bot", marked.parse(data.answer));
-  } catch (err) {
-    appendMessage("bot", "<span class='text-danger'>Error al conectar con el backend</span>");
-    console.error(err);
-  }
-}
+        const data = await res.json();
 
-// Subida de documentos
-const dropzone = document.getElementById("dropzone");
-const progressBar = document.getElementById("progress");
+        renderDocs(data.documents);
 
-dropzone.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  dropzone.classList.add("dragover");
-});
+        addMsg("bot", marked.parse(data.answer));
 
-dropzone.addEventListener("dragleave", () => {
-  dropzone.classList.remove("dragover");
-});
-
-dropzone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropzone.classList.remove("dragover");
-  const file = e.dataTransfer.files[0];
-  if (file) uploadFile(file);
-});
-
-document.getElementById("uploadBtn").addEventListener("click", () => {
-  const file = document.getElementById("fileInput").files[0];
-  if (file) uploadFile(file);
-});
-
-function uploadFile(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  progressBar.style.width = "0%";
-  progressBar.innerText = "0%";
-
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", "/api/embed/upload", true);
-
-  xhr.upload.onprogress = (e) => {
-    if (e.lengthComputable) {
-      const percent = Math.round((e.loaded / e.total) * 100);
-      progressBar.style.width = percent + "%";
-      progressBar.innerText = percent + "%";
+    } catch (e) {
+        addMsg("bot", "❌ Error conectando con el servidor");
+        console.error(e);
     }
-  };
-
-  xhr.onloadstart = () => {
-    progressBar.classList.add("progress-bar-animated");
-  };
-
-  xhr.onload = () => {
-    progressBar.classList.remove("progress-bar-animated");
-    progressBar.style.width = "100%";
-    progressBar.innerText = "Completado";
-    loadDocuments();
-  };
-
-  xhr.onerror = () => {
-    progressBar.classList.remove("progress-bar-animated");
-    progressBar.classList.add("bg-danger");
-    progressBar.innerText = "Error";
-  };
-
-  xhr.send(formData);
 }
 
-// Listar documentos cargados
-async function loadDocuments() {
-  try {
-    const response = await fetch("/api/embed/documents");
-    const docs = await response.json();
-    renderDocuments(docs);
-  } catch (err) {
-    console.error("Error al listar documentos:", err);
-  }
+// ---------------- UI CHAT ----------------
+
+function addMsg(type, text) {
+
+    const div = document.createElement("div");
+    div.className = "msg " + type;
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.innerHTML = text;
+
+    div.appendChild(bubble);
+    chatBox.appendChild(div);
+
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function appendMessage(sender, text) {
-  const msgDiv = document.createElement("div");
-  msgDiv.classList.add("message", sender === "user" ? "user-msg" : "bot-msg");
+// ---------------- DOCUMENTOS ----------------
 
-  const bubble = document.createElement("div");
-  bubble.classList.add("bubble");
-  bubble.innerHTML = text;
+async function loadDocs() {
 
-  msgDiv.appendChild(bubble);
-  chatWindow.appendChild(msgDiv);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
+    try {
+
+        const res = await fetch("/api/embed/documents");
+        const data = await res.json();
+
+        renderDocs(data);
+
+    } catch (e) {
+        console.error("Error docs:", e);
+    }
 }
 
-function renderDocuments(docs) {
-  docList.innerHTML = "";
-  docs.forEach(doc => {
-    const badge = document.createElement("span");
-    badge.classList.add("badge", "bg-secondary", "me-1", "mb-1");
-    badge.innerText = doc;
-    docList.appendChild(badge);
-  });
+function renderDocs(docs) {
+
+    docList.innerHTML = "";
+
+    docs.forEach(d => {
+
+        const span = document.createElement("span");
+        span.className = "badge bg-secondary badge-doc";
+        span.innerText = d.doc_name;
+
+        docList.appendChild(span);
+    });
 }
 
-// Cargar documentos al inicio
-loadDocuments();
+// ---------------- UPLOAD ----------------
 
+uploadBtn.onclick = uploadFile;
+
+function uploadFile() {
+
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/upload");
+
+    xhr.upload.onprogress = (e) => {
+
+        if (e.lengthComputable) {
+            const percent = (e.loaded / e.total) * 100;
+            progress.style.width = percent + "%";
+            progress.innerText = Math.round(percent) + "%";
+        }
+    };
+
+    xhr.onload = () => {
+
+        progress.style.width = "100%";
+        progress.innerText = "OK";
+
+        loadDocs();
+    };
+
+    xhr.onerror = () => {
+        progress.style.width = "100%";
+        progress.innerText = "ERROR";
+        progress.classList.add("bg-danger");
+    };
+
+    xhr.send(formData);
+}
+
+// ---------------- INIT ----------------
+
+loadDocs();
+addMsg("bot", "👋 Bienvenido a Mercado Central 24H. Puedes consultar documentos o subir nuevos archivos.");
