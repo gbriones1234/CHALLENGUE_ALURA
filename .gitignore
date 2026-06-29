@@ -6,3 +6,4 @@ venv/
 .bash_history
 .gitconfig
 .viminfo
+.ssh/
