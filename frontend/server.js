@@ -6,6 +6,8 @@ const axios = require("axios");
 const app = express();
 const PORT = 3000;
 
+app.use(express.json());
+
 // Configuración de Multer: guarda con nombre original y extensión
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -50,8 +52,43 @@ app.get("/documents", async (req, res) => {
   }
 });
 
+// Proxy directo al chat backend (LangGraph, puerto 6000).
+// Si en producción ya tienes Nginx enrutando /api/chat -> :6000, esta ruta
+// solo se usa cuando se corre server.js solo (desarrollo local).
+app.post("/api/chat", async (req, res) => {
+  try {
+    const response = await axios.post("http://127.0.0.1:6000/api/chat", req.body);
+    res.json(response.data);
+  } catch (err) {
+    console.error("Error en /api/chat:", err.message);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// Proxy directo al listado de documentos del embedding backend (mismo caso que arriba)
+app.get("/api/embed/documents", async (req, res) => {
+  try {
+    const response = await axios.get("http://127.0.0.1:5000/api/embed/documents");
+    res.json(response.data);
+  } catch (err) {
+    console.error("Error en /api/embed/documents:", err.message);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// Fuerza recarga del inventario en memoria del chat backend
+// (llamar tras reemplazar el .xlsx en el servidor)
+app.post("/api/inventory/reload", async (req, res) => {
+  try {
+    const response = await axios.post("http://127.0.0.1:6000/api/inventory/reload");
+    res.json(response.data);
+  } catch (err) {
+    console.error("Error recargando inventario:", err.message);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
 // Iniciar servidor
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Frontend en http://0.0.0.0:${PORT}`);
 });
-
