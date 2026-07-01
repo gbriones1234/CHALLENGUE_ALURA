@@ -59,8 +59,8 @@ sendBtn.addEventListener("click", sendMessage);
 
 let isSending = false;
 
-async function sendMessage() {
-  const text = userInput.value.trim();
+async function sendMessage(overrideText) {
+  const text = (overrideText ?? userInput.value).trim();
   if (!text || isSending) return;
 
   isSending = true;
@@ -74,11 +74,9 @@ async function sendMessage() {
   const { wrapper: thinkWrapper, steps } = addThinking();
 
   try {
-    // Step 1 — embed
     activateStep(steps, 0);
-    await delay(400);
+    await delay(300);
 
-    // Step 2 — vector search
     activateStep(steps, 1);
 
     const res = await fetch("/api/chat", {
@@ -87,19 +85,21 @@ async function sendMessage() {
       body: JSON.stringify({ query: text })
     });
 
-    // Step 3 — generating
     doneStep(steps, 1);
     activateStep(steps, 2);
-    await delay(300);
+    await delay(200);
 
     const data = await res.json();
 
     doneStep(steps, 2);
-    await delay(200);
+    await delay(150);
 
-    // Remove thinking bubble, add answer
+    // Remove thinking bubble, add answer (+ gráfica + sugerencias si vienen)
     thinkWrapper.remove();
-    addMsg("bot", marked.parse(data.answer));
+    addMsg("bot", marked.parse(data.answer || ""), {
+      chart: data.chart,
+      suggestions: data.suggestions
+    });
 
     if (data.documents) renderDocs(data.documents);
 
@@ -120,9 +120,9 @@ async function sendMessage() {
 // ─────────────────────────────────────────
 
 const THINKING_STEPS = [
-  { icon: "🔍", label: "Generando embedding de la consulta…" },
-  { icon: "⚡", label: "Buscando en vectores (pgvector)…"    },
-  { icon: "🧠", label: "Generando respuesta con el modelo…"  }
+  { icon: "🔍", label: "Analizando la consulta…"        },
+  { icon: "⚡", label: "Buscando información…"           },
+  { icon: "🧠", label: "Generando respuesta con el modelo…" }
 ];
 
 function addThinking() {
@@ -175,7 +175,7 @@ function addThinking() {
 
 function activateStep(steps, index) {
   steps.forEach((s, i) => {
-    if (i < index) return; // already done
+    if (i < index) return;
     if (i === index) {
       s.row.classList.add("active");
       s.spinner.style.display = "block";
@@ -193,10 +193,10 @@ function doneStep(steps, index) {
 }
 
 // ─────────────────────────────────────────
-//  MESSAGES
+//  MESSAGES (+ gráfica y chips de sugerencias)
 // ─────────────────────────────────────────
 
-function addMsg(type, html) {
+function addMsg(type, html, extras = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = `msg ${type}`;
 
@@ -208,6 +208,14 @@ function addMsg(type, html) {
   bubble.className = "bubble";
   bubble.innerHTML = html;
 
+  if (extras.chart) {
+    const img = document.createElement("img");
+    img.className = "chart-img";
+    img.src = extras.chart;
+    img.alt = "Gráfica de inventario";
+    bubble.appendChild(img);
+  }
+
   if (type === "user") {
     wrapper.appendChild(bubble);
     wrapper.appendChild(avatar);
@@ -217,7 +225,28 @@ function addMsg(type, html) {
   }
 
   chatBox.appendChild(wrapper);
+
+  if (extras.suggestions && extras.suggestions.length) {
+    chatBox.appendChild(buildSuggestions(extras.suggestions));
+  }
+
   scrollBottom();
+}
+
+function buildSuggestions(list) {
+  const row = document.createElement("div");
+  row.className = "suggestions";
+
+  list.forEach(text => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "suggestion-chip";
+    chip.textContent = text;
+    chip.addEventListener("click", () => sendMessage(text));
+    row.appendChild(chip);
+  });
+
+  return row;
 }
 
 function scrollBottom() {
@@ -262,10 +291,8 @@ function renderDocs(docs) {
 //  DROPZONE + FILE INPUT
 // ─────────────────────────────────────────
 
-// Click en dropzone abre el file picker
 dropzone.addEventListener("click", () => fileInput.click());
 
-// Drag events
 dropzone.addEventListener("dragover", (e) => {
   e.preventDefault();
   dropzone.classList.add("drag-over");
@@ -282,12 +309,10 @@ dropzone.addEventListener("drop", (e) => {
   if (file) setFile(file);
 });
 
-// Selección manual
 fileInput.addEventListener("change", () => {
   if (fileInput.files[0]) setFile(fileInput.files[0]);
 });
 
-// Quitar archivo seleccionado
 fileClear.addEventListener("click", (e) => {
   e.stopPropagation();
   clearFile();
@@ -298,7 +323,6 @@ function setFile(file) {
     showToast("Solo se aceptan archivos PDF", "err");
     return;
   }
-  // Sincronizar con el input real para reusar el flujo XHR
   const dt = new DataTransfer();
   dt.items.add(file);
   fileInput.files = dt.files;
@@ -387,4 +411,4 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 // ─────────────────────────────────────────
 
 loadDocs();
-addMsg("bot", "👋 Bienvenido al asistente de <strong>Mercado Central 24H</strong>.<br>Puedes hacerme preguntas sobre los documentos o subir nuevos archivos PDF.");
+addMsg("bot", "👋 Bienvenido al asistente de <strong>Mercado Central 24H</strong>.<br>Puedes preguntarme sobre los documentos o sobre el <strong>inventario</strong> (stock, ubicaciones, vencimientos, gráficas).");
