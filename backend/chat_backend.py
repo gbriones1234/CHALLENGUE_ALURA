@@ -483,16 +483,16 @@ PREGUNTA DEL USUARIO:
 
 workflow = StateGraph(AgentState)
 
-workflow.add_node("intent", intent_node)
+workflow.add_node("classify_intent", intent_node)
 workflow.add_node("retrieval", retrieval_node)
 workflow.add_node("generator", chat_node)
 workflow.add_node("inventory_data", inventory_data_node)
 workflow.add_node("inventory_narrate", inventory_narrate_node)
 
-workflow.set_entry_point("intent")
+workflow.set_entry_point("classify_intent")
 
 workflow.add_conditional_edges(
-    "intent",
+    "classify_intent",
     route_intent,
     {"inventario": "inventory_data", "documentos": "retrieval"}
 )
