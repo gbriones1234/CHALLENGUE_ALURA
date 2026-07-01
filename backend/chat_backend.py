@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
-import psycopg2
+from psycopg2 import pool
 import ollama
 import os
+import threading
+from functools import lru_cache
 from dotenv import load_dotenv
 from typing import TypedDict, List
 from langgraph.graph import StateGraph, END
@@ -18,10 +20,18 @@ class AgentState(TypedDict):
 load_dotenv()
 
 # ---------------------------------------------------------
-# POSTGRES
+# SEMÁFORO LLM — solo 1 inferencia a la vez
 # ---------------------------------------------------------
 
-conn = psycopg2.connect(
+_llm_semaphore = threading.Semaphore(1)
+
+# ---------------------------------------------------------
+# POSTGRES POOL
+# ---------------------------------------------------------
+
+db_pool = pool.ThreadedConnectionPool(
+    minconn=1,
+    maxconn=3,
     dbname=os.getenv("DB_NAME"),
     user=os.getenv("DB_USER"),
     password=os.getenv("DB_PASSWORD"),
@@ -29,49 +39,46 @@ conn = psycopg2.connect(
     port=os.getenv("DB_PORT", "5432")
 )
 
-cur = conn.cursor()
-
 # ---------------------------------------------------------
-# EMBEDDINGS
+# EMBEDDINGS CON CACHÉ
 # ---------------------------------------------------------
 
+MAX_EMBED_CHARS = 1500
+
+@lru_cache(maxsize=256)
 def embed_text(text: str):
-    return ollama.embeddings(
-        model="bge-m3",
-        prompt=text
-    )["embedding"]
+    text = text[:MAX_EMBED_CHARS]
+    return tuple(
+        ollama.embeddings(model="bge-m3", prompt=text)["embedding"]
+    )
 
 # ---------------------------------------------------------
-# SEARCH MEJORADO
+# SEARCH
 # ---------------------------------------------------------
 
 def search_similar(query: str, top_k: int = 5):
+    emb = list(embed_text(query))
 
-    emb = embed_text(query)
-
-    cur.execute(
-        """
-        SELECT doc_name, page, content
-        FROM documents
-        ORDER BY embedding <=> %s::vector
-        LIMIT %s
-        """,
-        (emb, top_k * 3)
-    )
-
-    rows = cur.fetchall()
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT doc_name, page, content
+                FROM documents
+                ORDER BY embedding <=> %s::vector
+                LIMIT %s
+                """,
+                (emb, top_k * 2)
+            )
+            rows = cur.fetchall()
+    finally:
+        db_pool.putconn(conn)
 
     context = []
-
     for doc_name, page, content in rows:
-
-        # filtro básico de calidad
         if content and len(content.strip()) > 40:
-
-            context.append(
-                f"[{doc_name} - pág {page}] {content}"
-            )
-
+            context.append(f"[{doc_name} - pág {page}] {content}")
         if len(context) >= top_k:
             break
 
@@ -82,12 +89,9 @@ def search_similar(query: str, top_k: int = 5):
 # ---------------------------------------------------------
 
 def retrieval_node(state: AgentState):
-
     query = state["query"].strip()
-
     query_lower = query.lower()
 
-    # fallback inteligente
     if any(x in query_lower for x in ["donde", "ubicación", "direccion", "sucursal"]):
         context = search_similar(query, top_k=6)
     else:
@@ -100,7 +104,6 @@ def retrieval_node(state: AgentState):
 # ---------------------------------------------------------
 
 def chat_node(state: AgentState):
-
     context_text = "\n".join(state["context"])
 
     system_prompt = """
@@ -123,13 +126,19 @@ PREGUNTA:
 {state['query']}
 """
 
-    response = ollama.chat(
-        model="llama3.1",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ]
-    )
+    with _llm_semaphore:
+        response = ollama.chat(
+            model="qwen2.5:3b",
+            options={
+                "num_predict": 180,
+                "temperature": 0.1,
+                "num_thread": 4,
+            },
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ]
+        )
 
     return {"answer": response["message"]["content"]}
 
@@ -156,7 +165,6 @@ app = Flask(__name__)
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-
     data = request.get_json(silent=True)
 
     if not data or "query" not in data:
@@ -166,32 +174,33 @@ def chat():
 
     result = app_graph.invoke({"query": query})
 
-    # devolver docs únicos usados en contexto
-    cur.execute("""
-        SELECT DISTINCT doc_name
-        FROM documents
-        ORDER BY doc_name;
-    """)
-
-    docs = [r[0] for r in cur.fetchall()]
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT DISTINCT doc_name
+                FROM documents
+                ORDER BY doc_name;
+            """)
+            docs = [r[0] for r in cur.fetchall()]
+    finally:
+        db_pool.putconn(conn)
 
     return jsonify({
         "documents": docs,
         "answer": result["answer"]
     })
 
-
 # ---------------------------------------------------------
-# RUN
+# RUN — usar solo para desarrollo local
+# Para producción: gunicorn app:app --workers 1 --threads 4 --timeout 120 --bind 127.0.0.1:6000 --worker-class gthread
 # ---------------------------------------------------------
 
 if __name__ == "__main__":
-
     print("Chat RAG iniciado en puerto 6000")
-
     app.run(
         host="127.0.0.1",
         port=6000,
         debug=False,
-        threaded=True
+        threaded=False   # False porque el semáforo maneja concurrencia
     )
