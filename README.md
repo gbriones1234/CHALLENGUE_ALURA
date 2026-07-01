@@ -68,7 +68,8 @@ La arquitectura está desplegada en **Oracle Cloud Infrastructure (OCI)** sobre 
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/tuusuario/chat-backend-oracle.git
+git clone https://github.com/gbriones1234/CHALLENGUE_ALURA.git
+
 cd chat-backend-oracle
 
 # Crear entorno virtual
