@@ -130,7 +130,8 @@ PREGUNTA:
         response = ollama.chat(
             model="qwen2.5:3b",
             options={
-                "num_predict": 180,
+                "num_predict": 512,
+                "num_ctx": 4096,
                 "temperature": 0.1,
                 "num_thread": 4,
             },
