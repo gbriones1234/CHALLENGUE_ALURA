@@ -161,6 +161,34 @@
   .bubble p:last-child { margin-bottom: 0; }
   .bubble code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: rgba(0,0,0,.3); padding: 1px 5px; border-radius: 4px; }
 
+  /* ── GRÁFICA DE INVENTARIO ── */
+  .chart-img {
+    display: block;
+    max-width: 100%;
+    margin-top: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+  }
+
+  /* ── CHIPS DE SUGERENCIAS ── */
+  .suggestions {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-left: 42px; /* alinea con la burbuja del bot (avatar 32px + gap 10px) */
+    max-width: 78%;
+  }
+  .suggestion-chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-size: 12px; padding: 6px 12px;
+    border-radius: 20px; cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .suggestion-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(47,129,247,.08);
+  }
+
   /* ── THINKING ── */
   .thinking-bubble {
     background: var(--surface2); border: 1px solid var(--border);
@@ -240,7 +268,7 @@
       <div class="brand-icon">🏪</div>
       <div class="brand-text">
         <h5>Mercado Central 24H</h5>
-        <small>Asistente inteligente de documentos</small>
+        <small>Asistente inteligente de documentos e inventario</small>
       </div>
     </div>
 
@@ -284,8 +312,8 @@
 
     <div class="chat-header">
       <div class="status-dot"></div>
-      <span class="header-label">Chat con documentos</span>
-      <span class="header-sub" id="modelLabel">llama3.1 · pgvector</span>
+      <span class="header-label">Chat con documentos e inventario</span>
+      <span class="header-sub" id="modelLabel">qwen2.5:3b · pgvector + pandas</span>
     </div>
 
     <div class="chat-box" id="chatBox"></div>
